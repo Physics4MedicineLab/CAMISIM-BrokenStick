@@ -19,7 +19,7 @@ from Bio import Phylo
 
 
 class GenomeOrganizer(Validator):
-	def get_genome_amounts(self, probability, max_genome_amount, num_real_genomes=None, silent=True):
+	def get_genome_amounts(self, probability, equally_distributed_strains, max_genome_amount, num_real_genomes=None, silent=True):
 		"""
 		Get amounts of genomes by original genome
 
@@ -41,7 +41,7 @@ class GenomeOrganizer(Validator):
 		assert isinstance(silent, bool)
 
 		if num_real_genomes is not None:
-			genome_amounts = self._get_genome_amounts_geometric_fix(num_real_genomes, max_genome_amount)
+			genome_amounts = self._get_genome_amounts_geometric_fix(num_real_genomes, max_genome_amount, equally_distributed_strains)
 		else:
 			genome_amounts = self._get_genome_amounts(probability, max_genome_amount)
 
@@ -124,7 +124,7 @@ class GenomeOrganizer(Validator):
 		return final_amounts
 
 	@staticmethod
-	def _get_genome_amounts_geometric_fix(num_real_genomes, max_genome_amount, geometric_probability=0.3):
+	def _get_genome_amounts_geometric_fix(num_real_genomes, max_genome_amount, equally_distributed_strains, geometric_probability=0.3):
 		"""
 		Get amounts of genomes by original genome
 
@@ -141,13 +141,28 @@ class GenomeOrganizer(Validator):
 
 		final_amounts = [1] * num_real_genomes
 		index = 0
-		while index < len(final_amounts):
-			if sum(final_amounts) >= max_genome_amount:
-				break
-			final_amounts[index] += 1 + np_random.geometric(geometric_probability)
-			index += 1
 
-		final_amounts[index-1] -= sum(final_amounts) - max_genome_amount
+		if equally_distributed_strains:
+			while index < len(final_amounts):
+				if sum(final_amounts) >= max_genome_amount:
+					break
+				final_amounts[index] += int((max_genome_amount - num_real_genomes)/num_real_genomes)
+				index += 1
+
+			index_set = set(range(len(final_amounts)))
+			index_sublist = random.sample(index_set, max_genome_amount - sum(final_amounts))
+			for indices in index_sublist:
+				final_amounts[indices] += 1
+
+		else:
+			while index < len(final_amounts):
+				if sum(final_amounts) >= max_genome_amount:
+					break
+				final_amounts[index] += 1 + np_random.geometric(geometric_probability)
+				index += 1
+
+			final_amounts[index-1] -= sum(final_amounts) - max_genome_amount
+
 		return final_amounts
 
 	@staticmethod

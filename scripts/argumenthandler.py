@@ -254,6 +254,10 @@ id_to_genome_file={id_to_genome_file}
 # File with genome gen annotation file locations. Format: GENOME_ID \t FILEPATH \n
 id_to_gff_file={id_to_gff_file}
 
+# File with relative abundances of the input genomes. Format: Genome_ID \t Abundance \n (no header)
+# Valid only for the 'known_distribution' modality (for all the other modalities it should be left empty)
+path_to_abundance_file={path_to_abundance_file}
+
 # Total number of genomes to be used based on this community
 genomes_total={genomes_total}
 
@@ -269,8 +273,16 @@ max_strains_per_otu={max_strains_per_otu}
 ratio={ratio}
 
 # Simulated distribution
-# Options: replicates, timeseries_normal, timeseries_lognormal, differential
+# Options: known_distribution, replicates, timeseries_normal, timeseries_lognormal, differential
 mode={mode}
+
+# Boolean parameter which defines how the number of strains will be distributed among the different input genomes (uniformly or not)
+# Valid for all the CAMISIM modalities
+equally_distributed_strains={equally_distributed_strains}
+
+# Boolean parameter which decides if the input genomes' abundance will be set to zero (or not) after the re-distribution among strains
+# Valid only for the 'known_distribution' modality (for all the other modalities it doesn't matter how it is set)
+input_genomes_to_zero={input_genomes_to_zero}
 
 # mu of a log distribution
 log_mu={log_mu}
@@ -291,11 +303,14 @@ view={view}
                 metadata=community.file_path_metadata_table,
                 id_to_genome_file=community.file_path_genome_locations,
                 id_to_gff_file=community.file_path_gff_locations,
+                path_to_abundance_file=community.file_path_abundance_table,
                 genomes_total=community.genomes_total,
                 genomes_real=community.genomes_real,
                 max_strains_per_otu=community.limit_per_otu,
                 ratio=community.ratio,
                 mode=community.mode,
+                equally_distributed_strains=community.equally_distributed_strains,
+                input_genomes_to_zero=community.input_genomes_to_zero,
                 log_mu=community.log_mu,
                 log_sigma=community.log_sigma,
                 gauss_mu=community.gauss_mu,

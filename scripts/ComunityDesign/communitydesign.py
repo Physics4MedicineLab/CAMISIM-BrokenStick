@@ -24,8 +24,8 @@ class Community(Validator):
 
     def __init__(
             self, identifier, genomes_total, genomes_real, limit_per_otu, file_path_metadata_table,
-            file_path_genome_locations, file_path_gff_locations, ratio, mode,
-            log_mu, log_sigma, gauss_mu=None, gauss_sigma=None,
+            file_path_genome_locations, file_path_gff_locations, file_path_abundance_table, ratio, mode,
+            equally_distributed_strains, input_genomes_to_zero, log_mu, log_sigma, gauss_mu=None, gauss_sigma=None,
             logfile=None, verbose=True, debug=False):
         """
         Accumulation of all community related information
@@ -79,12 +79,17 @@ class Community(Validator):
         self.file_path_gff_locations = None
         if file_path_gff_locations is not None:
             self.file_path_gff_locations = self.get_full_path(file_path_gff_locations)
+        self.file_path_abundance_table = None
+        if file_path_abundance_table is not None:
+            self.file_path_abundance_table = self.get_full_path(file_path_abundance_table)
         self.ratio = ratio
         self.log_mu = log_mu
         self.log_sigma = log_sigma
         self.gauss_mu = gauss_mu
         self.gauss_sigma = gauss_sigma
         self.mode = mode
+        self.equally_distributed_strains = equally_distributed_strains
+        self.input_genomes_to_zero = input_genomes_to_zero
         self.simulate_strains = False
         if genomes_real and genomes_real < genomes_total:
             self.simulate_strains = True
@@ -96,6 +101,12 @@ class Community(Validator):
             return False
 
         if not self.validate_characters(self.mode) or self.mode == '':
+            return False
+
+        if not type(self.equally_distributed_strains) == bool:
+            return False
+
+        if not type(self.input_genomes_to_zero) == bool:
             return False
 
         if not self.validate_number(self.genomes_total, self.genomes_real):
@@ -129,6 +140,9 @@ class Community(Validator):
             return False
 
         if self.file_path_gff_locations and not self.validate_file(self.file_path_gff_locations):
+            return False
+
+        if self.file_path_abundance_table and not self.validate_file(self.file_path_abundance_table):
             return False
 
         return True
@@ -229,7 +243,7 @@ class CommunityDesign(GenomePreparation):
             stream_out.write("{id}\t{distr}\n".format(id=genome_id, distr='\t'.join(distributions)))
 
     def design_community(
-        self, file_path_distributions, community, number_of_samples, metadata_table,
+        self, file_path_distributions, community, select_random_genomes, number_of_samples, metadata_table,
         directory_out_metadata, directory_in_template=None):
         """
         Design artificial community, of a specific design, with different distributions for each sample
@@ -277,6 +291,7 @@ class CommunityDesign(GenomePreparation):
             probability = None  # 1-options.communities[community_id]["evolve"]
             genome_amounts = strain_simulation.get_genome_amounts(
                 probability=probability,
+                equally_distributed_strains = community.equally_distributed_strains,
                 max_genome_amount=community.genomes_total,
                 num_real_genomes=community.genomes_real,
                 silent=not community.verbose
@@ -296,7 +311,8 @@ class CommunityDesign(GenomePreparation):
         list_of_drawn_genome_id = strain_selector.get_drawn_genome_id(
             metadata_table=metadata_table_community,
             number_of_strains=number_of_strains,
-            number_of_strains_per_otu=community.limit_per_otu
+            number_of_strains_per_otu=community.limit_per_otu,
+            select_random_genomes=select_random_genomes
             )
 
         # write unused data to separate file
@@ -361,6 +377,9 @@ class CommunityDesign(GenomePreparation):
         list_of_distributions = population_distribution.get_lists_of_distributions(
             size_of_population=len(list_of_drawn_genome_id),
             number_of_samples=number_of_samples,
+            abundance_file_path=community.file_path_abundance_table,
+            bool_input_genomes_to_zero=community.input_genomes_to_zero,
+            list_of_genome_id=list_of_drawn_genome_id,
             modus=community.mode,
             log_mu=community.log_mu, log_sigma=community.log_sigma,
             gauss_mu=community.gauss_mu, gauss_sigma=community.gauss_sigma,
@@ -397,12 +416,12 @@ class CommunityDesign(GenomePreparation):
         @return: Map of genome id to a filename
         @rtype : dict[str|unicode, str|unicode]
         """
-        set_of_file_names = set()
+        set_of_file_names = []
         genome_id_to_file_name = {}
         for genome_id, file_path in genome_id_to_path_map.items():
             filename = os.path.basename(file_path)
             assert filename not in set_of_file_names, "Filename '{}' is not unique!".format(set_of_file_names)
-            set_of_file_names.add(filename)
+            set_of_file_names.append(filename)
             genome_id_to_file_name[genome_id] = filename
         return genome_id_to_file_name
 
@@ -438,7 +457,7 @@ class CommunityDesign(GenomePreparation):
         list_of_community_total_abundance = [0] * len(list_of_communities)
         sample_total_abundance = 0
 
-        genomes = set()
+        genomes = []
         metadata_table_community = MetadataTable(logfile=self._logfile, verbose=self._verbose)
         for index_community, file_path in enumerate(list_of_comunity_distribution_file_paths):
             community_distribution = metadata_table_community.parse_file(file_path, column_names=False)
@@ -446,7 +465,7 @@ class CommunityDesign(GenomePreparation):
                 genome_id = row[0]
                 if genome_id in genomes:
                     raise ValueError("Genome id '{}' not unique".format(genome_id))
-                genomes.add(genome_id)
+                genomes.append(genome_id)
                 abundance = row[index_sample+1]
                 list_of_community_total_abundance[index_community] += float(abundance)  # * float(sequence_info[4])
             community_distribution.close()
@@ -527,6 +546,23 @@ class CommunityDesign(GenomePreparation):
 
         @return: Dictionary with drawn genome ids as key and file paths as value
         @rtype: tuple[dict[str|unicode, str|unicode]
+
+
+        ----------------------------------------------------------------------------
+        @author: Ettore Rocchi
+
+        The modified version of this function allows to set the parameter select_genomes_randomly, which
+        in turn, allows to choose the way in which the genomes are selected during the community design
+        step.
+
+        {See also the draw_strains function in strainselector.py}
+
+        What's new?
+                - Variables: There is one new variable defined within this function (select_genomes_randomly);
+                        - select_genomes_randomly: (bool) this variable is set to False if the known_distribution
+                                                   modality is considered, to True otherwise. This variable is then
+                                                   passed to the desing_community function. Its value will finally
+                                                   to the draw_strains function defined in strainselector.py
         """
         assert isinstance(list_of_communities, list)
         assert isinstance(list_of_file_paths_distribution, list)
@@ -540,9 +576,14 @@ class CommunityDesign(GenomePreparation):
         for community in list_of_communities:
             file_path_output_comunity = tempfile.mktemp(dir=self._tmp_dir)  # insecure
             list_of_comunity_distribution_file_paths.append(file_path_output_comunity)
+            if community.mode == 'known_distribution':
+                select_genomes_randomly = False
+            else:
+                select_genomes_randomly = True
             genome_id_to_path_map = self.design_community(
                 file_path_distributions=file_path_output_comunity,
                 community=community,
+                select_random_genomes=select_genomes_randomly,
                 number_of_samples=len(list_of_file_paths_distribution),
                 metadata_table=metadata_table,
                 directory_out_metadata=directory_out_metadata,
