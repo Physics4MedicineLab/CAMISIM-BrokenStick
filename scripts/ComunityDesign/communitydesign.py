@@ -272,6 +272,10 @@ class CommunityDesign(GenomePreparation):
         # pick how much a strain will be simulated
         genome_amounts = []
         strain_simulation = None
+
+        metadata_table_community = MetadataTable(logfile=self._logfile, verbose=self._verbose)
+        metadata_table_community.read(community.file_path_metadata_table, column_names=True)
+        
         if community.simulate_strains:
             strain_simulation = StrainSimulationWrapper(
                 executable_sim=None,
@@ -289,32 +293,52 @@ class CommunityDesign(GenomePreparation):
                 )
 
             probability = None  # 1-options.communities[community_id]["evolve"]
-            genome_amounts = strain_simulation.get_genome_amounts(
-                probability=probability,
-                equally_distributed_strains = community.equally_distributed_strains,
-                max_genome_amount=community.genomes_total,
-                num_real_genomes=community.genomes_real,
-                silent=not community.verbose
-            )
+            ###############################################
+            if community.strain_style == "strain_from_metadata":
+                #NEW MODE IMPLEMENTED BY ADRIANO
+                print(file_path_distributions)
+                genome_amounts = metadata_table_community.get_column(self._column_name_N_simulated_strains)
+                print("genome_amounts: ", genome_amounts)
+            elif specified_strain_partition == {} and community.strain_style == "equally_distributed_strains":
+                print("NOT fully set up")
+                genome_amounts = strain_simulation.get_genome_amounts(
+                    probability=probability,
+                    equally_distributed_strains = True,
+                    max_genome_amount=community.genomes_total,
+                    num_real_genomes=community.genomes_real,
+                    silent= not community.verbose)
+                print("genome_amounts: ", genome_amounts)
+            elif specified_strain_partition == {} and community.strain_style == "not_equally_distributed_strains":
+                print("NOT fully set up")
+                genome_amounts = strain_simulation.get_genome_amounts(
+                    probability=probability,
+                    equally_distributed_strains = False,
+                    max_genome_amount=community.genomes_total,
+                    num_real_genomes=community.genomes_real,
+                    silent= not community.verbose)
+                print("genome_amounts: ", genome_amounts)
+            elif specified_strain_partition != {}:
+                genome_amounts = list(specified_strain_partition.values())
             number_of_strains = len(genome_amounts)
 
         # draw strains
         self._logger.info("Drawing strains.")
-        metadata_table_community = MetadataTable(logfile=self._logfile, verbose=self._verbose)
-        metadata_table_community.read(community.file_path_metadata_table, column_names=True)
         strain_selector = StrainSelector(
             column_name_genome_id=self._column_name_genome_id,
             column_name_otu=self._column_name_otu,
             column_name_novelty_category=self._column_name_novelty_category,
             logfile=self._logfile, verbose=self._verbose, debug=self._debug
             )
-        list_of_drawn_genome_id = strain_selector.get_drawn_genome_id(
-            metadata_table=metadata_table_community,
-            number_of_strains=number_of_strains,
-            number_of_strains_per_otu=community.limit_per_otu,
-            select_random_genomes=select_random_genomes
-            )
-
+        if community.strain_style == "strain_from_metadata":
+            list_of_drawn_genome_id = metadata_table_community.get_column(self._column_name_genome_id)
+        else:
+            list_of_drawn_genome_id = strain_selector.get_drawn_genome_id(
+                metadata_table=metadata_table_community,
+                number_of_strains=number_of_strains,
+                number_of_strains_per_otu=community.limit_per_otu,
+                select_random_genomes=select_random_genomes
+                )
+            
         # write unused data to separate file
         old_base_name = os.path.basename(community.file_path_metadata_table)
         file_prefix, extention = os.path.splitext(old_base_name)
