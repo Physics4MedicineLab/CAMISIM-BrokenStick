@@ -257,7 +257,7 @@ class StrainSimulationWrapper(GenomeOrganizer):
 
 	def __init__(
 		self, executable_sim=None, directory_template=None,
-		column_name_gid="genome_ID", column_name_ncbi="NCBI_ID", column_name_source="source", separator='\t',
+		column_name_gid="genome_ID", column_name_ncbi="NCBI_ID", column_name_source="source", column_name_N_strains = "N_strains", separator='\t',
 		filename_prefix="simulated_", keep_original=True,
 		max_processors=1, tmp_dir=None, logfile=None, verbose=True, debug=False, seed=None):
 		"""
@@ -324,6 +324,7 @@ class StrainSimulationWrapper(GenomeOrganizer):
 		self._column_name_gid = column_name_gid
 		self._column_name_ncbi = column_name_ncbi
 		self._column_name_source = column_name_source
+		self._column_name_N_strains = column_name_N_strains
 		self._filename_prefix = filename_prefix
 		self._keep_original = keep_original
 		self._directory_template = directory_template
