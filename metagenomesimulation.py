@@ -240,6 +240,7 @@ class MetagenomeSimulation(ArgumentHandler):
             column_name_novelty_category=self._column_name_novelty_category,
             column_name_ncbi=self._column_name_ncbi,
             column_name_source=self._column_name_source,
+            column_name_simulated_strains=self._column_name_simulated_strains,
             max_processors=self._max_processors,
             tmp_dir=self._project_file_folder_handler.get_tmp_wd(),
             logfile=self._logfile,
@@ -852,7 +853,7 @@ if __name__ == "__main__":
         pipeline = MetagenomeSimulation(
             args=None, separator="\t",
             column_name_genome_id="genome_ID", column_name_otu="OTU", column_name_novelty_category="novelty_category",
-            column_name_ncbi="NCBI_ID", column_name_source="source")
+            column_name_ncbi="NCBI_ID", column_name_source="source", column_name_simulated_strains="N_strains")
     except (KeyboardInterrupt, SystemExit, Exception, ValueError, RuntimeError) as e:
         # if debug:
         #     sys.stderr.write("\n{}\n".format(traceback.format_exc()))
