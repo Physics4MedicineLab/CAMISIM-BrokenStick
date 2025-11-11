@@ -23,11 +23,12 @@ class ArgumentHandler(ConfigFileHandler):
     _column_name_novelty_category = "novelty_category",
     _column_name_ncbi = "NCBI_ID",
     _column_name_source = "source",
+    _column_name_simulated_strains="N_strains",
 
     def __init__(
         self, args=None, separator="\t",
         column_name_genome_id="genome_ID", column_name_otu="OTU", column_name_novelty_category="novelty_category",
-        column_name_ncbi="NCBI_ID", column_name_source="source"):
+        column_name_ncbi="NCBI_ID", column_name_source="source", column_name_simulated_strains="N_simulated_strains"):
         """
         Constructor
 
@@ -54,6 +55,7 @@ class ArgumentHandler(ConfigFileHandler):
         self._column_name_novelty_category = column_name_novelty_category
         self._column_name_ncbi = column_name_ncbi
         self._column_name_source = column_name_source
+        self._column_name_simulated_strains = column_name_simulated_strains
 
         options = self._get_parser_options(args)
         logfile = options.logfile
@@ -278,7 +280,7 @@ mode={mode}
 
 # Boolean parameter which defines how the number of strains will be distributed among the different input genomes (uniformly or not)
 # Valid for all the CAMISIM modalities
-equally_distributed_strains={equally_distributed_strains}
+strain_style={strain_style}
 
 # Boolean parameter which decides if the input genomes' abundance will be set to zero (or not) after the re-distribution among strains
 # Valid only for the 'known_distribution' modality (for all the other modalities it doesn't matter how it is set)
@@ -309,7 +311,7 @@ view={view}
                 max_strains_per_otu=community.limit_per_otu,
                 ratio=community.ratio,
                 mode=community.mode,
-                equally_distributed_strains=community.equally_distributed_strains,
+                strain_style=community.strain_style,
                 input_genomes_to_zero=community.input_genomes_to_zero,
                 log_mu=community.log_mu,
                 log_sigma=community.log_sigma,
