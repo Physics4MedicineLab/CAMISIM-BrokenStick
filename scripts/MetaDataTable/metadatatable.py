@@ -375,6 +375,24 @@ class MetadataTable(Compress):
 		assert self.has_column(column_name), "Column '{}' not found!".format(column_name)
 		return list(self._meta_table[column_name])
 
+	def get_column_as_dictionary(self, key_column_name, value_column_name):
+		"""
+			Get a column
+
+			@attention: use index if no name available
+
+			@param column_name: column name
+			@type column_name: int | long | str | unicode
+
+			@return: Cell values of a column
+			@rtype: list[str|unicode]
+		"""
+		assert isinstance(value_column_name, (str))
+		assert self.has_column(value_column_name), "Column '{}' not found!".format(value_column_name)
+		assert isinstance(key_column_name, (str))
+		assert self.has_column(key_column_name), "Column '{}' not found!".format(key_column_name)
+		return dict(zip(self._meta_table[key_column_name], self._meta_table[value_column_name]))
+
 	def get_empty_column(self, default_value=''):
 		"""
 			Get a empty column with the same number of rows as the current table
