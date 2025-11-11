@@ -135,8 +135,8 @@ class ConfigFileHandler(DefaultValues):
 
         community_sections = set()
         community_key_options = {
-            "genomes_total", 'num_real_genomes', 'max_strains_per_otu', 'ratio',
-            'equally_distributed_strains', 'input_genomes_to_zero', 'log_mu', 'log_sigma', 'gauss_mu', 'gauss_sigma'}
+            "genomes_total", 'num_real_genomes', 'max_strains_per_otu', 
+            'ratio', 'strain_style', 'input_genomes_to_zero', 'log_mu', 'log_sigma', 'gauss_mu', 'gauss_sigma'}
         for key_options in community_key_options:
             community_sections = community_sections.union(self._config.search_sections_of(key_options))
 
@@ -148,6 +148,7 @@ class ConfigFileHandler(DefaultValues):
             file_path_gff_locations = self._config.get_value('id_to_gff_file', community_section, is_path=True, silent=True)
             file_path_abundance_table = self._config.get_value('path_to_abundance_file', community_section, is_path=True, silent=True)
             mode = self._config.get_value('mode', community_section, silent=True)
+            strain_style = self._config.get_value('strain_style', community_section, silent=True)
             if not isinstance(file_path_metadata_table, str):
                 is_valid = False
             if not isinstance(file_path_genome_locations, str):
@@ -175,7 +176,7 @@ class ConfigFileHandler(DefaultValues):
                 file_path_abundance_table=file_path_abundance_table,
                 ratio=self._config.get_value('ratio', community_section, is_digit=True, silent=True),
                 mode=mode,
-                equally_distributed_strains=self._config.get_value('equally_distributed_strains', community_section, is_boolean=True),
+                strain_style=strain_style,
                 input_genomes_to_zero=self._config.get_value('input_genomes_to_zero', community_section, is_boolean=True),
                 log_mu=self._config.get_value('log_mu', community_section, is_digit=True, silent=True),
                 log_sigma=self._config.get_value('log_sigma', community_section, is_digit=True, silent=True),
@@ -249,7 +250,7 @@ class ConfigFileHandler(DefaultValues):
             output_stream.write("max_strains_per_otu={}\n".format(community.limit_per_otu))
             output_stream.write("ratio={}\n".format(community.ratio))
             output_stream.write("mode={}\n".format(community.mode))
-            output_stream.write("equally_distributed_strains={}\n".format(community.equally_distributed_strains))
+            output_stream.write("strain_style={}\n".format(community.strain_style))
             output_stream.write("input_genomes_to_zero={}\n".format(community.input_genomes_to_zero))
             output_stream.write("log_mu={}\n".format(community.log_mu))
             output_stream.write("log_sigma={}\n".format(community.log_sigma))
