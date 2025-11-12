@@ -25,7 +25,7 @@ class Community(Validator):
     def __init__(
             self, identifier, genomes_total, genomes_real, limit_per_otu, file_path_metadata_table,
             file_path_genome_locations, file_path_gff_locations, file_path_abundance_table, ratio, mode,
-            equally_distributed_strains, input_genomes_to_zero, log_mu, log_sigma, gauss_mu=None, gauss_sigma=None,
+            strain_style, input_genomes_to_zero, log_mu, log_sigma, gauss_mu=None, gauss_sigma=None,
             logfile=None, verbose=True, debug=False):
         """
         Accumulation of all community related information
@@ -88,7 +88,7 @@ class Community(Validator):
         self.gauss_mu = gauss_mu
         self.gauss_sigma = gauss_sigma
         self.mode = mode
-        self.equally_distributed_strains = equally_distributed_strains
+        self.strain_style = strain_style
         self.input_genomes_to_zero = input_genomes_to_zero
         self.simulate_strains = False
         if genomes_real and genomes_real < genomes_total:
@@ -103,7 +103,7 @@ class Community(Validator):
         if not self.validate_characters(self.mode) or self.mode == '':
             return False
 
-        if not type(self.equally_distributed_strains) == bool:
+        if not self.validate_characters(self.strain_style) or self.strain_style == '':
             return False
 
         if not type(self.input_genomes_to_zero) == bool:
@@ -140,6 +140,7 @@ class Community(Validator):
             return False
 
         if self.file_path_gff_locations and not self.validate_file(self.file_path_gff_locations):
+            print("File path gff locations is not valid")
             return False
 
         if self.file_path_abundance_table and not self.validate_file(self.file_path_abundance_table):
@@ -166,7 +167,7 @@ class CommunityDesign(GenomePreparation):
     # distribution = str(int(distribution) * factor)
     def __init__(
         self, column_name_genome_id="genome_ID", column_name_otu="OTU",
-        column_name_novelty_category="novelty_category", column_name_ncbi="NCBI_ID", column_name_source="source",
+        column_name_novelty_category="novelty_category", column_name_ncbi="NCBI_ID", column_name_source="source", column_name_simulated_strains="N_simulated_strains",
         max_processors=1, tmp_dir=None, logfile=None, verbose=True, debug=False, seed=None):
         """
         @param column_name_genome_id: Column name of genome ids in the metadata table
@@ -179,6 +180,8 @@ class CommunityDesign(GenomePreparation):
         @type column_name_ncbi: str | unicode
         @param column_name_source: Column name of 'source' in the metadata table
         @type column_name_source: str | unicode
+        @param column_name_simulated_strains: Column name of number of simulated strains in the metadata table
+        @type column_name_simulated_strains: str | unicode
         @param max_processors: maximum number of processors available to be used
         @type max_processors: long | int
         @param tmp_dir: working directory or place temporary files can be stored
@@ -202,6 +205,7 @@ class CommunityDesign(GenomePreparation):
         self._column_name_novelty_category = column_name_novelty_category
         self._column_name_source = column_name_source
         self._column_name_ncbi = column_name_ncbi
+        self._column_name_N_simulated_strains = column_name_simulated_strains
 
         assert isinstance(max_processors, int)
         assert max_processors > 0
@@ -244,7 +248,7 @@ class CommunityDesign(GenomePreparation):
 
     def design_community(
         self, file_path_distributions, community, select_random_genomes, number_of_samples, metadata_table,
-        directory_out_metadata, directory_in_template=None):
+        directory_out_metadata, specified_strain_partition = {}, directory_in_template=None):
         """
         Design artificial community, of a specific design, with different distributions for each sample
 
@@ -260,7 +264,8 @@ class CommunityDesign(GenomePreparation):
         @type directory_out_metadata: str | unicode
         @param directory_in_template: contains template data for strain simulation
         @type directory_in_template: str | unicode
-
+        @param specified_strain_partition: Dictionary with genome ids as key and the number of strains to be simulated
+        @type specified_strain_partition: dict[str|unicode, int|long]
         @return: Dictionary with drawn genome ids as key and file paths as value
         @rtype: dict[str|unicode, str|unicode]
         """
@@ -378,6 +383,7 @@ class CommunityDesign(GenomePreparation):
         # simulate diversity around strains
         if community.simulate_strains:
             genome_id_to_amounts = strain_simulation.get_genome_id_to_amounts(list_of_drawn_genome_id, genome_amounts)
+            #genome_id_to_amounts = {x : int(y) for x,y in genome_id_to_amounts.items()}
             strain_simulation.simulate_strains(
                 meta_table=metadata_table,
                 genome_id_to_amounts=genome_id_to_amounts,
