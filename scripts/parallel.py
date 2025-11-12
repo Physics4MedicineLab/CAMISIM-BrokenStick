@@ -104,7 +104,7 @@ class AsyncParallel:
         return identifier
 
     @staticmethod
-    def add_cmd_tasks(cmd_task_list, identifier=None, stdin_error_lock=mp.Manager().Lock()):
+    def add_cmd_tasks(cmd_task_list, identifier=None, stdin_error_lock=None):
         """
             Run several command line commands in parallel.
 
@@ -116,6 +116,10 @@ class AsyncParallel:
             @return: list of failed commands, dictionary (cmd, task process)
         """
         assert isinstance(cmd_task_list, list)
+
+        # Create lock at runtime if not provided (safe for macOS / Python >=3.8)
+        if stdin_error_lock is None:
+            stdin_error_lock = mp.Manager().Lock()
 
         thread_task_list = []
         for cmdTask in cmd_task_list:
@@ -253,7 +257,7 @@ def _runCmd(taskCmd, stdInErrLock=None):
     return (process, taskCmd)
 
 
-def runCmdParallel(cmdTaskList, maxProc=mp.cpu_count(), stdInErrLock=mp.Manager().Lock()):
+def runCmdParallel(cmdTaskList, maxProc=mp.cpu_count(), stdInErrLock=None):
     """
         Run several command line commands in parallel.
 
@@ -268,6 +272,9 @@ def runCmdParallel(cmdTaskList, maxProc=mp.cpu_count(), stdInErrLock=mp.Manager(
     """
     assert isinstance(cmdTaskList, list)
     assert isinstance(maxProc, int)
+
+    if stdInErrLock is None:
+        stdInErrLock = mp.Manager().Lock()
 
     threadTaskList = []
     for cmdTask in cmdTaskList:
