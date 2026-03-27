@@ -28,7 +28,7 @@ class ArgumentHandler(ConfigFileHandler):
     def __init__(
         self, args=None, separator="\t",
         column_name_genome_id="genome_ID", column_name_otu="OTU", column_name_novelty_category="novelty_category",
-        column_name_ncbi="NCBI_ID", column_name_source="source", column_name_simulated_strains="N_simulated_strains"):
+        column_name_ncbi="NCBI_ID", column_name_source="source", column_name_simulated_strains="N_strains"):
         """
         Constructor
 

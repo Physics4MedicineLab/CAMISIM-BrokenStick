@@ -167,7 +167,7 @@ class CommunityDesign(GenomePreparation):
     # distribution = str(int(distribution) * factor)
     def __init__(
         self, column_name_genome_id="genome_ID", column_name_otu="OTU",
-        column_name_novelty_category="novelty_category", column_name_ncbi="NCBI_ID", column_name_source="source", column_name_simulated_strains="N_simulated_strains",
+        column_name_novelty_category="novelty_category", column_name_ncbi="NCBI_ID", column_name_source="source", column_name_simulated_strains="N_strains",
         max_processors=1, tmp_dir=None, logfile=None, verbose=True, debug=False, seed=None):
         """
         @param column_name_genome_id: Column name of genome ids in the metadata table
@@ -298,32 +298,24 @@ class CommunityDesign(GenomePreparation):
                 )
 
             probability = None  # 1-options.communities[community_id]["evolve"]
-            ###############################################
             if community.strain_style == "strain_from_metadata":
-                #NEW MODE IMPLEMENTED BY ADRIANO
-                print(file_path_distributions)
                 genome_amounts = metadata_table_community.get_column(self._column_name_N_simulated_strains)
-                print("genome_amounts: ", genome_amounts)
             elif specified_strain_partition == {} and community.strain_style == "equally_distributed_strains":
-                print("NOT fully set up")
                 genome_amounts = strain_simulation.get_genome_amounts(
                     probability=probability,
                     equally_distributed_strains = True,
                     max_genome_amount=community.genomes_total,
                     num_real_genomes=community.genomes_real,
                     silent= not community.verbose)
-                print("genome_amounts: ", genome_amounts)
             elif specified_strain_partition == {} and community.strain_style == "not_equally_distributed_strains":
-                print("NOT fully set up")
                 genome_amounts = strain_simulation.get_genome_amounts(
                     probability=probability,
                     equally_distributed_strains = False,
                     max_genome_amount=community.genomes_total,
                     num_real_genomes=community.genomes_real,
                     silent= not community.verbose)
-                print("genome_amounts: ", genome_amounts)
             elif specified_strain_partition != {}:
-                genome_amounts = list(specified_strain_partition.values())
+                genome_amounts = [int(x) for x in specified_strain_partition.values()]
             number_of_strains = len(genome_amounts)
 
         # draw strains
@@ -332,6 +324,7 @@ class CommunityDesign(GenomePreparation):
             column_name_genome_id=self._column_name_genome_id,
             column_name_otu=self._column_name_otu,
             column_name_novelty_category=self._column_name_novelty_category,
+            column_name_N_strains=self._column_name_N_simulated_strains,
             logfile=self._logfile, verbose=self._verbose, debug=self._debug
             )
         if community.strain_style == "strain_from_metadata":
@@ -383,7 +376,6 @@ class CommunityDesign(GenomePreparation):
         # simulate diversity around strains
         if community.simulate_strains:
             genome_id_to_amounts = strain_simulation.get_genome_id_to_amounts(list_of_drawn_genome_id, genome_amounts)
-            #genome_id_to_amounts = {x : int(y) for x,y in genome_id_to_amounts.items()}
             strain_simulation.simulate_strains(
                 meta_table=metadata_table,
                 genome_id_to_amounts=genome_id_to_amounts,
@@ -610,6 +602,16 @@ class CommunityDesign(GenomePreparation):
                 select_genomes_randomly = False
             else:
                 select_genomes_randomly = True
+            specified_strain_partition = {}
+            if community.strain_style == "strain_from_metadata":
+                metadata_table_tmp = MetadataTable(logfile=self._logfile, verbose=self._verbose)
+                metadata_table_tmp.read(community.file_path_metadata_table, column_names=True)
+                specified_strain_partition = {
+                    k: int(v) for k, v in metadata_table_tmp.get_column_as_dictionary(
+                        self._column_name_genome_id, self._column_name_N_simulated_strains
+                    ).items()
+                }
+
             genome_id_to_path_map = self.design_community(
                 file_path_distributions=file_path_output_comunity,
                 community=community,
@@ -617,6 +619,7 @@ class CommunityDesign(GenomePreparation):
                 number_of_samples=len(list_of_file_paths_distribution),
                 metadata_table=metadata_table,
                 directory_out_metadata=directory_out_metadata,
+                specified_strain_partition=specified_strain_partition,
                 directory_in_template=directory_in_template)
             merged_genome_id_to_path_map.update(genome_id_to_path_map)
 
